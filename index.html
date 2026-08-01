@@ -201,7 +201,7 @@
               </div>
             </div>
 
-            <!-- Tombol Status Kehadiran -->
+            <!-- PERBAIKAN: Tombol Status Kehadiran (Hadir, Alfa, Izin, Sakit) -->
             <div class="mt-6 pt-4 border-t border-slate-100">
               <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Status Kehadiran:</label>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="scan-mode-container">
@@ -347,7 +347,12 @@
           <div class="p-6 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div><h3 class="font-bold text-slate-800 text-lg">Daftar Belum Mengisi Absensi</h3><p class="text-xs text-slate-500">Realtime — filter menurut tanggal, kelas, jenis sesi, dan peran</p></div>
             <div class="flex flex-wrap items-center gap-3">
-              <input type="date" id="belum-date-filter" onchange="renderBelumAbsenTable()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <input 
+  type="date" 
+  id="belum-date-filter" 
+  onchange="renderBelumAbsenTable()" 
+  class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-xs focus:ring-2 focus:ring-indigo-500 outline-none" 
+/>
               <select id="belum-class-filter" onchange="renderBelumAbsenTable()" class="px-3 py-2 bg-slate-50 border rounded-xl text-xs font-semibold">
                 <option value="ALL">Semua Kelas</option>
               </select>
@@ -385,7 +390,7 @@
               <img id="profil-logo-preview" src="https://via.placeholder.com/100?text=Logo" class="w-20 h-20 object-cover rounded-xl border bg-white p-1" alt="Logo Preview">
               <div class="flex-1 text-center sm:text-left">
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Logo Sekolah</label>
-                <p class="text-xs text-slate-500 mb-2">Upload file gambar logo (.png/.jpg) otomatis dikompres</p>
+                <p class="text-xs text-slate-500 mb-2">Upload file gambar logo (.png/.jpg) maksimal 2MB</p>
                 <input type="file" id="profil-logo-input" accept="image/*" onchange="previewLogoSekolah(event)" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
               </div>
             </div>
@@ -446,7 +451,7 @@
           <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">No HP Ortu</label><input type="text" id="form-nohp" placeholder="0812..." class="w-full px-4 py-2 bg-slate-50 border rounded-xl text-sm"></div>
         </div>
 
-        <!-- FITUR UPLOAD FOTO SISWA DENGAN KOMPRESI OTOMATIS -->
+        <!-- FITUR UPLOAD FOTO SISWA -->
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Foto Siswa</label>
           <input type="file" id="form-foto-siswa" accept="image/*" onchange="previewFotoUpload(event, 'previewFotoSiswa')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border rounded-xl bg-slate-50">
@@ -479,7 +484,7 @@
           <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">No HP / WA</label><input type="text" id="form-guru-nohp" placeholder="0812..." class="w-full px-4 py-2 bg-slate-50 border rounded-xl text-sm"></div>
         </div>
 
-        <!-- UPLOAD FOTO GURU DENGAN KOMPRESI OTOMATIS -->
+        <!-- UPLOAD FOTO GURU -->
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Foto Guru</label>
           <input type="file" id="form-foto-guru" accept="image/*" onchange="previewFotoUpload(event, 'previewFotoGuru')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border rounded-xl bg-slate-50">
@@ -741,7 +746,7 @@
     function onScanSuccess(decodedText) { processAttendanceScan(decodedText.trim(), 'QR Code'); }
     function onScanFailure(error) {}
 
-    /* Handler Pilihan Mode Status Kehadiran */
+    /* PERBAIKAN: Handler Pilihan Mode Status Kehadiran (Hadir, Alfa, Izin, Sakit) */
     function setScanMode(mode) {
       if (currentJenisAbsen === 'Pulang') return;
       currentScanMode = mode;
@@ -810,7 +815,7 @@
       const personRole = isSiswa ? 'Siswa' : 'Guru';
 
       const now = new Date();
-      const todayStr = getTodayLocalDateStr();
+      const todayStr = now.toISOString().split('T')[0];
 
       const already = attendanceLogs.some(log =>
         String(getLogId(log)) === idCode &&
@@ -870,8 +875,7 @@
         <p class="text-xs font-semibold text-slate-500 mb-1">ID: ${idCode}</p>
         <p class="text-xs font-bold text-rose-600">Sudah mengisi absen ${jenis} hari ini!</p>`;
     }
-
-    /* ============ UPLOAD & KOMPRESI FOTO OTOMATIS ============ */
+/* ============ UPLOAD & KOMPRESI FOTO OTOMATIS ============ */
     // Utility Canvas untuk Resize & Kompresi Foto
     function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.7) {
       return new Promise((resolve, reject) => {
@@ -944,6 +948,33 @@
         console.error("Logo Error:", err);
         showToast("Gagal memproses logo", "error");
       }
+    }
+
+    /* ============ UPLOAD & IMPORT EXCEL ============ */
+    function previewFotoUpload(event, previewImgId) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { alert("Ukuran file terlalu besar! Maksimal 2MB."); event.target.value = ""; return; }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById(previewImgId).src = e.target.result;
+        tempFotoBase64 = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function previewLogoSekolah(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { alert("Ukuran logo maksimal 2MB."); event.target.value = ""; return; }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('profil-logo-preview').src = e.target.result;
+        schoolProfile.logoUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
     function downloadExcelTemplate(type) {
@@ -1020,7 +1051,6 @@
       document.getElementById('form-nisn').value = ''; document.getElementById('form-nisn').removeAttribute('readonly');
       document.getElementById('form-nama').value = ''; document.getElementById('form-nohp').value = '';
       document.getElementById('previewFotoSiswa').src = 'https://via.placeholder.com/100?text=Foto';
-      document.getElementById('form-foto-siswa').value = '';
       tempFotoBase64 = '';
       document.getElementById('modal-siswa').classList.remove('hidden');
     }
@@ -1032,7 +1062,6 @@
       document.getElementById('form-nama').value = s.nama; document.getElementById('form-kelas').value = s.kelas;
       document.getElementById('form-jk').value = s.jk; document.getElementById('form-nohp').value = s.nohp || '';
       document.getElementById('previewFotoSiswa').src = s.fotoUrl || 'https://via.placeholder.com/100?text=Foto';
-      document.getElementById('form-foto-siswa').value = '';
       tempFotoBase64 = s.fotoUrl || '';
       document.getElementById('modal-siswa').classList.remove('hidden');
     }
@@ -1108,7 +1137,6 @@
       document.getElementById('form-guru-nip').value = ''; document.getElementById('form-guru-nip').removeAttribute('readonly');
       document.getElementById('form-guru-nama').value = ''; document.getElementById('form-guru-jabatan').value = ''; document.getElementById('form-guru-nohp').value = '';
       document.getElementById('previewFotoGuru').src = 'https://via.placeholder.com/100?text=Foto';
-      document.getElementById('form-foto-guru').value = '';
       tempFotoBase64 = '';
       document.getElementById('modal-guru').classList.remove('hidden');
     }
@@ -1120,7 +1148,6 @@
       document.getElementById('form-guru-nama').value = g.nama; document.getElementById('form-guru-jabatan').value = g.jabatan;
       document.getElementById('form-guru-jk').value = g.jk; document.getElementById('form-guru-nohp').value = g.nohp || '';
       document.getElementById('previewFotoGuru').src = g.fotoUrl || 'https://via.placeholder.com/100?text=Foto';
-      document.getElementById('form-foto-guru').value = '';
       tempFotoBase64 = g.fotoUrl || '';
       document.getElementById('modal-guru').classList.remove('hidden');
     }
@@ -1313,315 +1340,316 @@
 
     /* ============ LAYOUT KARTU A4 (6 Kartu per Halaman) ============ */
     function renderKtsCards() {
-      const container = document.getElementById('print-section');
-      const cardType = document.getElementById('kts-type-filter').value;
-      const classFilter = document.getElementById('kts-class-filter').value;
+  const container = document.getElementById('print-section');
+  const cardType = document.getElementById('kts-type-filter').value;
+  const classFilter = document.getElementById('kts-class-filter').value;
 
-      let list = [];
-      if (cardType === 'SISWA') {
-        list = students.filter(s => classFilter === 'ALL' || s.kelas === classFilter).map(s => ({
-          id: s.nisn, nama: s.nama, sub: s.kelas, role: 'SISWA', foto: s.fotoUrl
-        }));
-      } else {
-        list = teachers.map(g => ({
-          id: g.nip, nama: g.nama, sub: g.jabatan || 'Guru', role: 'GURU / STAF', foto: g.fotoUrl
-        }));
-      }
+  let list = [];
+  if (cardType === 'SISWA') {
+    list = students.filter(s => classFilter === 'ALL' || s.kelas === classFilter).map(s => ({
+      id: s.nisn, nama: s.nama, sub: s.kelas, role: 'SISWA', foto: s.fotoUrl
+    }));
+  } else {
+    list = teachers.map(g => ({
+      id: g.nip, nama: g.nama, sub: g.jabatan || 'Guru', role: 'GURU / STAF', foto: g.fotoUrl
+    }));
+  }
 
-      if (list.length === 0) {
-        container.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10 font-bold">Tidak ada data untuk dicetak.</div>`;
-        return;
-      }
+  if (list.length === 0) {
+    container.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10 font-bold">Tidak ada data untuk dicetak.</div>`;
+    return;
+  }
 
-      container.innerHTML = list.map((item, idx) => {
-        const isSiswa = item.role === 'SISWA';
+  container.innerHTML = list.map((item, idx) => {
+    const isSiswa = item.role === 'SISWA';
+    
+    // Tema Warna Dinamis
+    const headerBg = isSiswa 
+      ? 'bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 text-white' 
+      : 'bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 text-white';
+      
+    const badgeRoleBg = isSiswa ? 'bg-amber-400 text-slate-900' : 'bg-sky-300 text-slate-900';
+    const subColor = isSiswa ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+    const photoBorder = isSiswa ? 'border-indigo-500' : 'border-amber-500';
+
+    // Penyesuaian ukuran nama
+    const namaStr = item.nama || '-';
+    const nameFontSize = namaStr.length > 18 ? 'text-[9.5px]' : 'text-[11px]';
+
+    // Placeholder jika foto kosong
+    const defaultPlaceholder = 'https://via.placeholder.com/150x200/e2e8f0/64748b?text=FOTO';
+    const fotoSrc = (item.foto && item.foto.trim() !== '') ? item.foto : defaultPlaceholder;
+
+    return `
+      <div class="kts-card bg-white rounded-2xl flex flex-col justify-between border border-slate-200/80 shadow-md relative overflow-hidden transition hover:shadow-lg">
         
-        const headerBg = isSiswa 
-          ? 'bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 text-white' 
-          : 'bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 text-white';
-          
-        const badgeRoleBg = isSiswa ? 'bg-amber-400 text-slate-900' : 'bg-sky-300 text-slate-900';
-        const subColor = isSiswa ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-800 border-amber-200';
-        const photoBorder = isSiswa ? 'border-indigo-500' : 'border-amber-500';
+        <!-- Background Dekorasi -->
+        <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-indigo-500/10 pointer-events-none"></div>
 
-        const namaStr = item.nama || '-';
-        const nameFontSize = namaStr.length > 18 ? 'text-[9.5px]' : 'text-[11px]';
-
-        const defaultPlaceholder = 'https://via.placeholder.com/150x200/e2e8f0/64748b?text=FOTO';
-        const fotoSrc = (item.foto && item.foto.trim() !== '') ? item.foto : defaultPlaceholder;
-
-        return `
-          <div class="kts-card bg-white rounded-2xl flex flex-col justify-between border border-slate-200/80 shadow-md relative overflow-hidden transition hover:shadow-lg">
-            
-            <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-indigo-500/10 pointer-events-none"></div>
-
-            <div class="${headerBg} px-3 py-1.5 flex items-center space-x-2.5 relative z-10">
-              <div class="w-7 h-7 shrink-0 bg-white rounded-lg p-0.5 flex items-center justify-center shadow-xs">
-                <img src="${schoolProfile.logoUrl || 'https://via.placeholder.com/40'}" class="max-w-full max-h-full object-contain" onError="this.src='https://via.placeholder.com/40?text=Logo'">
-              </div>
-              <div class="flex-1 min-w-0">
-                <h5 class="text-[10px] font-black uppercase tracking-tight truncate leading-tight">${schoolProfile.namaSekolah}</h5>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="text-[7px] font-extrabold ${badgeRoleBg} px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                    KARTU TANDA ${item.role}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="px-3 py-1.5 flex items-center space-x-2.5 relative z-10 my-auto">
-              <div class="shrink-0 rounded-xl border-2 ${photoBorder} overflow-hidden shadow-xs bg-slate-100 flex items-center justify-center" style="width: 60px; height: 76px; min-width: 60px; min-height: 76px;">
-                <img 
-                  src="${fotoSrc}" 
-                  class="w-full h-full object-cover" 
-                  style="width: 100%; height: 100%; object-fit: cover;"
-                  onError="this.onerror=null; this.src='${defaultPlaceholder}';"
-                />
-              </div>
-              
-              <div class="flex-1 min-w-0 space-y-0.5">
-                <p class="${nameFontSize} font-black text-slate-800 leading-tight line-clamp-2 break-words">
-                  ${namaStr}
-                </p>
-                
-                <div class="flex items-center gap-1 text-[8px]">
-                  <span class="font-semibold text-slate-400">ID:</span>
-                  <span class="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.2 rounded">${item.id}</span>
-                </div>
-
-                <div class="text-[8px] flex items-center gap-1">
-                  <span class="font-semibold text-slate-400">${isSiswa ? 'Kelas' : 'Jabatan'}:</span>
-                  <span class="font-extrabold px-1 py-0.2 rounded border ${subColor}">${item.sub}</span>
-                </div>
-                
-                <div class="pt-0.5">
-                  <span class="inline-block px-1.5 py-0.5 bg-slate-800 text-amber-300 font-extrabold text-[7.5px] rounded-md tracking-tight leading-none">
-                    TA ${academicYear.tahunPelajaran} (${academicYear.semester})
-                  </span>
-                </div>
-              </div>
-
-              <div class="shrink-0 bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs flex items-center justify-center">
-                <div id="qrcode-${idx}" class="w-[66px] h-[66px] flex items-center justify-center"></div>
-              </div>
-            </div>
-
-            <div class="bg-slate-50 border-t border-slate-100 px-3 py-1 flex justify-between items-center text-[8px] relative z-10">
-              <span class="font-black text-slate-700">
-                NPSN: <span class="text-indigo-600 font-bold">${schoolProfile.npsn}</span>
-              </span>
-              <span class="font-extrabold text-indigo-700 uppercase tracking-wider text-[7px]">
-                Absensi QR System
-              </span>
-            </div>
-
+        <!-- Header Kartu -->
+        <div class="${headerBg} px-3 py-1.5 flex items-center space-x-2.5 relative z-10">
+          <div class="w-7 h-7 shrink-0 bg-white rounded-lg p-0.5 flex items-center justify-center shadow-xs">
+            <img src="${schoolProfile.logoUrl || 'https://via.placeholder.com/40'}" class="max-w-full max-h-full object-contain" onError="this.src='https://via.placeholder.com/40?text=Logo'">
           </div>
-        `;
-      }).join('');
+          <div class="flex-1 min-w-0">
+            <h5 class="text-[10px] font-black uppercase tracking-tight truncate leading-tight">${schoolProfile.namaSekolah}</h5>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span class="text-[7px] font-extrabold ${badgeRoleBg} px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                KARTU TANDA ${item.role}
+              </span>
+            </div>
+          </div>
+        </div>
 
-      list.forEach((item, idx) => {
-        const qrEl = document.getElementById(`qrcode-${idx}`);
-        if (qrEl) {
-          qrEl.innerHTML = '';
-          new QRCode(qrEl, {
-            text: String(item.id),
-            width: 66,
-            height: 66,
-            correctLevel: QRCode.CorrectLevel.H
-          });
-        }
+        <!-- Bodi Utama Kartu -->
+        <div class="px-3 py-1.5 flex items-center space-x-2.5 relative z-10 my-auto">
+          
+          <!-- FRAME FOTO PROFIL (UKURAN DIKUNCI MATI DENGAN STYLE CSS) -->
+          <div class="shrink-0 rounded-xl border-2 ${photoBorder} overflow-hidden shadow-xs bg-slate-100 flex items-center justify-center" style="width: 60px; height: 76px; min-width: 60px; min-height: 76px;">
+            <img 
+              src="${fotoSrc}" 
+              class="w-full h-full object-cover" 
+              style="width: 100%; height: 100%; object-fit: cover;"
+              onError="this.onerror=null; this.src='${defaultPlaceholder}';"
+            />
+          </div>
+          
+          <!-- Detail Info -->
+          <div class="flex-1 min-w-0 space-y-0.5">
+            <!-- NAMA LENGKAP -->
+            <p class="${nameFontSize} font-black text-slate-800 leading-tight line-clamp-2 break-words">
+              ${namaStr}
+            </p>
+            
+            <div class="flex items-center gap-1 text-[8px]">
+              <span class="font-semibold text-slate-400">ID:</span>
+              <span class="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.2 rounded">${item.id}</span>
+            </div>
+
+            <div class="text-[8px] flex items-center gap-1">
+              <span class="font-semibold text-slate-400">${isSiswa ? 'Kelas' : 'Jabatan'}:</span>
+              <span class="font-extrabold px-1 py-0.2 rounded border ${subColor}">${item.sub}</span>
+            </div>
+            
+            <!-- Teks TA -->
+            <div class="pt-0.5">
+              <span class="inline-block px-1.5 py-0.5 bg-slate-800 text-amber-300 font-extrabold text-[7.5px] rounded-md tracking-tight leading-none">
+                TA ${academicYear.tahunPelajaran} (${academicYear.semester})
+              </span>
+            </div>
+          </div>
+
+          <!-- QR Code -->
+          <div class="shrink-0 bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs flex items-center justify-center">
+            <div id="qrcode-${idx}" class="w-[66px] h-[66px] flex items-center justify-center"></div>
+          </div>
+        </div>
+
+        <!-- Footer Kartu -->
+        <div class="bg-slate-50 border-t border-slate-100 px-3 py-1 flex justify-between items-center text-[8px] relative z-10">
+          <span class="font-black text-slate-700">
+            NPSN: <span class="text-indigo-600 font-bold">${schoolProfile.npsn}</span>
+          </span>
+          <span class="font-extrabold text-indigo-700 uppercase tracking-wider text-[7px]">
+            Absensi QR System
+          </span>
+        </div>
+
+      </div>
+    `;
+  }).join('');
+
+  // Generate QR Code
+  list.forEach((item, idx) => {
+    const qrEl = document.getElementById(`qrcode-${idx}`);
+    if (qrEl) {
+      qrEl.innerHTML = '';
+      new QRCode(qrEl, {
+        text: String(item.id),
+        width: 66,
+        height: 66,
+        correctLevel: QRCode.CorrectLevel.H
       });
     }
+  });
+}
 
     /* ============ REKAP & DASHBOARD STATS ============ */
-    function getTodayLocalDateStr() {
-      const d = new Date();
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function updateDashboardStats() {
-      const todayStr = getTodayLocalDateStr();
-
-      const todayLogs = attendanceLogs.filter(l => {
-        return getLogDate(l) === todayStr && getLogJenis(l) === 'Masuk Sekolah';
-      });
-      
-      const totalSiswaGuru = (students ? students.length : 0) + (teachers ? teachers.length : 0);
-      const hadirCount = todayLogs.filter(l => l.status === 'Hadir' || l.status === 'Terlambat').length;
-      const izinCount = todayLogs.filter(l => l.status === 'Izin' || l.status === 'Sakit').length;
-      const alfaCount = todayLogs.filter(l => l.status === 'Alfa').length;
-      
-      const belumCount = Math.max(0, totalSiswaGuru - (hadirCount + izinCount + alfaCount));
-
-      if (document.getElementById('stat-total-siswa')) {
-        document.getElementById('stat-total-siswa').innerText = totalSiswaGuru;
-      }
-      if (document.getElementById('stat-hadir')) {
-        document.getElementById('stat-hadir').innerText = hadirCount;
-      }
-      if (document.getElementById('stat-izin')) {
-        document.getElementById('stat-izin').innerText = izinCount;
-      }
-      if (document.getElementById('stat-alpa')) {
-        document.getElementById('stat-alpa').innerText = alfaCount + belumCount;
-      }
-
-      const pct = totalSiswaGuru > 0 ? Math.round((hadirCount / totalSiswaGuru) * 100) : 0;
-      if (document.getElementById('stat-hadir-pct')) {
-        document.getElementById('stat-hadir-pct').innerText = `${pct}% dari total`;
-      }
-
-      updatePieChart(hadirCount, izinCount, alfaCount + belumCount);
-    }
-
-    function initChart() {
-      const ctx = document.getElementById('attendancePieChart');
-      if (!ctx) return;
-      pieChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Hadir', 'Izin/Sakit', 'Alfa/Belum'],
-          datasets: [{
-            data: [0, 0, 0],
-            backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
-        }
-      });
-    }
-
-    function updatePieChart(hadir, izin, alfa) {
-      if (pieChartInstance) {
-        pieChartInstance.data.datasets[0].data = [hadir, izin, alfa];
-        pieChartInstance.update();
-      }
-    }
-
-    function renderRecentTable() {
-      const tbody = document.getElementById('dashboard-recent-table');
-      if (!tbody) return;
-
-      const todayStr = getTodayLocalDateStr();
-      const todayRecent = attendanceLogs.filter(l => getLogDate(l) === todayStr);
-
-      if (todayRecent.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-medium">Belum ada aktivitas absensi hari ini.</td></tr>`;
-        return;
-      }
-
-      const recent = todayRecent.slice(0, 5);
-
-      tbody.innerHTML = recent.map(l => `
-        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-          <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.time || l.timestamp || '-'}</td>
-          <td class="px-6 py-3.5 font-bold font-mono text-slate-700">${getLogId(l) || l.nisn || '-'}</td>
-          <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama || '-'}</td>
-          <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
-          <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
-          <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.peran || 'Siswa'} (${l.kelas || '-'})</td>
-        </tr>
-      `).join('');
-    }
-
-    function getBadgeStatus(status) {
-      if (status === 'Hadir') return `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">Hadir</span>`;
-      if (status === 'Terlambat') return `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">Terlambat</span>`;
-      if (status === 'Alfa') return `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold">Alfa</span>`;
-      if (status === 'Izin' || status === 'Sakit') return `<span class="px-2.5 py-1 bg-sky-100 text-sky-800 rounded-lg text-xs font-bold">${status}</span>`;
-      if (status === 'Pulang') return `<span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-bold">Pulang</span>`;
-      return `<span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-bold">${status}</span>`;
-    }
-
-    function renderRekapTable() {
-      const tbody = document.getElementById('rekap-table-body');
-      if (!tbody) return;
-
-      const dateFilterInput = document.getElementById('rekap-date-filter');
-      const todayStr = getTodayLocalDateStr();
-
-      if (dateFilterInput && !dateFilterInput.value) {
-        dateFilterInput.value = todayStr;
-      }
-
-      const dateFilter = dateFilterInput?.value || todayStr;
-      const dateText = document.getElementById('rekap-date-text')?.value.trim() || "";
-      const nameSearch = document.getElementById('rekap-name-search')?.value.toLowerCase().trim() || "";
-      const jenisFilter = document.getElementById('rekap-jenis-filter')?.value || "ALL";
-      const classFilter = document.getElementById('rekap-class-filter')?.value || "ALL";
-
-      const normalizeDate = (dStr) => {
-        if (!dStr) return "";
-        let str = String(dStr).trim();
-        if (str.includes('/')) {
-          const parts = str.split('/');
-          if (parts.length === 3) {
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-          }
-        }
-        return str;
-      };
-
-      const filtered = attendanceLogs.filter(l => {
-        const logDate = normalizeDate(getLogDate(l));
-        
-        const mDate = !dateFilter || logDate === normalizeDate(dateFilter);
-        const mDateText = !dateText || logDate.includes(dateText);
-        const mName = !nameSearch || 
-                      (l.nama && l.nama.toLowerCase().includes(nameSearch)) || 
-                      (getLogId(l) && getLogId(l).toLowerCase().includes(nameSearch));
-        const mJenis = jenisFilter === 'ALL' || getLogJenis(l) === jenisFilter;
-        const mClass = classFilter === 'ALL' || l.kelas === classFilter;
-
-        return mDate && mDateText && mName && mJenis && mClass;
-      });
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="p-8 text-center text-slate-400 font-medium">
-              Belum ada log absensi untuk tanggal <span class="font-bold text-slate-600">${dateFilter}</span>
-            </td>
-          </tr>`;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(l => `
-        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-          <td class="px-6 py-3.5 text-xs text-slate-500 font-semibold">${getLogDate(l)} ${l.time || ''}</td>
-          <td class="px-6 py-3.5 font-mono font-bold text-slate-700">${getLogId(l)}</td>
-          <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama}</td>
-          <td class="px-6 py-3.5 text-xs text-slate-600 font-medium">${l.kelas}</td>
-          <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
-          <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
-          <td class="px-6 py-3.5 text-xs text-slate-500">${l.peran || 'Siswa'}</td>
-        </tr>
-      `).join('');
-    }
-
-    function exportRekapCSV() {
-      if (attendanceLogs.length === 0) { alert("Tidak ada data absensi untuk diekspor."); return; }
-      let csvContent = "data:text/csv;charset=utf-8,Waktu,Tanggal,Jam,ID_NISN_NIP,Nama,Kelas_Jabatan,Jenis_Sesi,Status,Peran\n";
-      attendanceLogs.forEach(l => {
-        csvContent += `"${l.timestamp}","${l.date}","${l.time}","${l.nisn}","${l.nama}","${l.kelas}","${l.jenisAbsen}","${l.status}","${l.peran}"\n`;
-      });
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Rekap_Absensi_${getTodayLocalDateStr()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
     // =========================================================
+// HELPER BANTUAN TANGGAL LOKAL (WIB / Mencegah Bug UTC)
+// =========================================================
+function getTodayLocalDateStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`; // Format pasti: YYYY-MM-DD sesuai jam HP/Komputer
+}
+
+// =========================================================
+// 1. DASHBOARD STATS (FIXED REALTIME TANGGAL)
+// =========================================================
+function updateDashboardStats() {
+  const todayStr = getTodayLocalDateStr();
+
+  // Filter HANYA log untuk HARI INI dan Jenis 'Masuk Sekolah'
+  const todayLogs = attendanceLogs.filter(l => {
+    return getLogDate(l) === todayStr && getLogJenis(l) === 'Masuk Sekolah';
+  });
+  
+  const totalSiswaGuru = (students ? students.length : 0) + (teachers ? teachers.length : 0);
+  const hadirCount = todayLogs.filter(l => l.status === 'Hadir' || l.status === 'Terlambat').length;
+  const izinCount = todayLogs.filter(l => l.status === 'Izin' || l.status === 'Sakit').length;
+  const alfaCount = todayLogs.filter(l => l.status === 'Alfa').length;
+  
+  // Belum Absen = Total Pengguna dikurangi yang SUDAH melakukan aksi (Hadir/Izin/Sakit/Alfa) HARI INI
+  const belumCount = Math.max(0, totalSiswaGuru - (hadirCount + izinCount + alfaCount));
+
+  // Update DOM Element
+  if (document.getElementById('stat-total-siswa')) {
+    document.getElementById('stat-total-siswa').innerText = totalSiswaGuru;
+  }
+  if (document.getElementById('stat-hadir')) {
+    document.getElementById('stat-hadir').innerText = hadirCount;
+  }
+  if (document.getElementById('stat-izin')) {
+    document.getElementById('stat-izin').innerText = izinCount;
+  }
+  if (document.getElementById('stat-alpa')) {
+    document.getElementById('stat-alpa').innerText = alfaCount + belumCount;
+  }
+
+  const pct = totalSiswaGuru > 0 ? Math.round((hadirCount / totalSiswaGuru) * 100) : 0;
+  if (document.getElementById('stat-hadir-pct')) {
+    document.getElementById('stat-hadir-pct').innerText = `${pct}% dari total`;
+  }
+
+  if (typeof updatePieChart === 'function') {
+    updatePieChart(hadirCount, izinCount, alfaCount + belumCount);
+  }
+}
+
+// =========================================================
+// 2. TABEL AKTIVITAS TERBARU (FIXED: HANYA DARI HARI INI)
+// =========================================================
+function renderRecentTable() {
+  const tbody = document.getElementById('dashboard-recent-table');
+  if (!tbody) return;
+
+  const todayStr = getTodayLocalDateStr();
+
+  // FILTER: Hanya ambil log yang terjadi HARI INI
+  const todayRecent = attendanceLogs.filter(l => getLogDate(l) === todayStr);
+
+  if (todayRecent.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-medium">Belum ada aktivitas absensi hari ini.</td></tr>`;
+    return;
+  }
+
+  // Ambil 5 aktivitas terbaru hari ini
+  const recent = todayRecent.slice(0, 5);
+
+  tbody.innerHTML = recent.map(l => `
+    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+      <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.time || l.timestamp || '-'}</td>
+      <td class="px-6 py-3.5 font-bold font-mono text-slate-700">${getLogId(l) || l.nisn || '-'}</td>
+      <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama || '-'}</td>
+      <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
+      <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
+      <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.peran || 'Siswa'} (${l.kelas || '-'})</td>
+    </tr>
+  `).join('');
+}
+
+// =========================================================
+// 3. BADGE STATUS
+// =========================================================
+function getBadgeStatus(status) {
+  if (status === 'Hadir') return `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">Hadir</span>`;
+  if (status === 'Terlambat') return `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">Terlambat</span>`;
+  if (status === 'Alfa') return `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold">Alfa</span>`;
+  if (status === 'Izin' || status === 'Sakit') return `<span class="px-2.5 py-1 bg-sky-100 text-sky-800 rounded-lg text-xs font-bold">${status}</span>`;
+  if (status === 'Pulang') return `<span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-bold">Pulang</span>`;
+  return `<span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-bold">${status}</span>`;
+}
+
+// =========================================================
+// TABEL REKAP ABSENSI (FIXED: DEFAULT TANGGAL HARI INI)
+// =========================================================
+function renderRekapTable() {
+  const tbody = document.getElementById('rekap-table-body');
+  if (!tbody) return;
+
+  const dateFilterInput = document.getElementById('rekap-date-filter');
+  const todayStr = getTodayLocalDateStr();
+
+  // 1. SET DEFAULT INPUT TANGGAL KE HARI INI (REALTIME) JIKA MASIH KOSONG
+  if (dateFilterInput && !dateFilterInput.value) {
+    dateFilterInput.value = todayStr;
+  }
+
+  // 2. AMBIL NILAI FILTER
+  const dateFilter = dateFilterInput?.value || todayStr;
+  const dateText = document.getElementById('rekap-date-text')?.value.trim() || "";
+  const nameSearch = document.getElementById('rekap-name-search')?.value.toLowerCase().trim() || "";
+  const jenisFilter = document.getElementById('rekap-jenis-filter')?.value || "ALL";
+  const classFilter = document.getElementById('rekap-class-filter')?.value || "ALL";
+
+  // Helper normalisasi tanggal agar cocok dengan YYYY-MM-DD
+  const normalizeDate = (dStr) => {
+    if (!dStr) return "";
+    let str = String(dStr).trim();
+    if (str.includes('/')) {
+      const parts = str.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    return str;
+  };
+
+  // 3. FILTER DATA LOG
+  const filtered = attendanceLogs.filter(l => {
+    const logDate = normalizeDate(getLogDate(l));
+    
+    // Cocokkan Tanggal (Default: Hari Ini)
+    const mDate = !dateFilter || logDate === normalizeDate(dateFilter);
+    const mDateText = !dateText || logDate.includes(dateText);
+    const mName = !nameSearch || 
+                  (l.nama && l.nama.toLowerCase().includes(nameSearch)) || 
+                  (getLogId(l) && getLogId(l).toLowerCase().includes(nameSearch));
+    const mJenis = jenisFilter === 'ALL' || getLogJenis(l) === jenisFilter;
+    const mClass = classFilter === 'ALL' || l.kelas === classFilter;
+
+    return mDate && mDateText && mName && mJenis && mClass;
+  });
+
+  // 4. JIKA TIDAK ADA DATA HARI INI
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-8 text-center text-slate-400 font-medium">
+          Belum ada log absensi untuk tanggal <span class="font-bold text-slate-600">${dateFilter}</span>
+        </td>
+      </tr>`;
+    return;
+  }
+
+  // 5. RENDER BARIS TABEL
+  tbody.innerHTML = filtered.map(l => `
+    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+      <td class="px-6 py-3.5 text-xs text-slate-500 font-semibold">${getLogDate(l)} ${l.time || ''}</td>
+      <td class="px-6 py-3.5 font-mono font-bold text-slate-700">${getLogId(l)}</td>
+      <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama}</td>
+      <td class="px-6 py-3.5 text-xs text-slate-600 font-medium">${l.kelas}</td>
+      <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
+      <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
+      <td class="px-6 py-3.5 text-xs text-slate-500">${l.peran || 'Siswa'}</td>
+    </tr>
+  `).join('');
+}
+
+// =========================================================
 // 5. TABEL BELUM ABSEN (FIXED TANGGAL LOKAL)
 // =========================================================
 async function renderBelumAbsenTable() {
@@ -1760,6 +1788,54 @@ async function renderBelumAbsenTable() {
       }
     }
 
+    // =========================================================
+    // 3. FUNGSI EKSPORED CSV ABSENSI
+    // =========================================================
+    function exportRekapCSV() {
+      if (attendanceLogs.length === 0) {
+        showToast("Tidak ada data absensi untuk diekspor", "error");
+        return;
+      }
+      let csv = "Tanggal,Waktu,ID/NISN,Nama,Kelas/Jabatan,Sesi Absen,Status,Peran,Metode\n";
+      attendanceLogs.forEach(l => {
+        csv += `"${l.date}","${l.time}","${l.nisn}","${l.nama}","${l.kelas}","${l.jenisAbsen}","${l.status}","${l.peran}","${l.method}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    function initChart() {
+      const ctx = document.getElementById('attendancePieChart').getContext('2d');
+      pieChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hadir', 'Izin / Sakit', 'Alfa / Belum Absen'],
+          datasets: [{
+            data: [0, 0, 0],
+            backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          cutout: '70%'
+        }
+      });
+    }
+
+    function updatePieChart(h, i, a) {
+      if (pieChartInstance) {
+        pieChartInstance.data.datasets[0].data = [h, i, a];
+        pieChartInstance.update();
+      }
+    }
   </script>
 </body>
 </html>
