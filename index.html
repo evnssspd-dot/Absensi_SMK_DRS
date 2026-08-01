@@ -1621,87 +1621,145 @@
       document.body.removeChild(link);
     }
 
-    async function renderBelumAbsenTable() {
-      const tbody = document.getElementById("belum-table-body");
-      if (!tbody) return;
+    // =========================================================
+// 5. TABEL BELUM ABSEN (FIXED TANGGAL LOKAL)
+// =========================================================
+async function renderBelumAbsenTable() {
+  const tbody = document.getElementById("belum-table-body");
+  if (!tbody) return;
 
-      const dateInput = document.getElementById("belum-date-filter");
-      const todayStr = getTodayLocalDateStr();
-      
-      if (dateInput && !dateInput.value) {
-        dateInput.value = todayStr;
+  const dateInput = document.getElementById("belum-date-filter");
+  const todayStr = getTodayLocalDateStr();
+  
+  // Set default tanggal hari ini (Lokal) jika kosong
+  if (dateInput && !dateInput.value) {
+    dateInput.value = todayStr;
+  }
+
+  let rawSelectedDate = dateInput?.value || todayStr;
+
+  const normalizeDateStr = (dateStr) => {
+    if (!dateStr) return "";
+    let str = String(dateStr).trim();
+    if (str.includes('/')) {
+      const parts = str.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
+    }
+    return str;
+  };
 
-      let rawSelectedDate = dateInput?.value || todayStr;
+  const targetDate = normalizeDateStr(rawSelectedDate);
+  const classFilter = document.getElementById("belum-class-filter")?.value || "ALL";
+  const jenisFilter = document.getElementById("belum-jenis-filter")?.value || "Masuk Sekolah";
+  const roleFilter = document.getElementById("belum-role-filter")?.value || "ALL";
+  const searchFilter = document.getElementById("belum-name-search")?.value?.toLowerCase() || "";
 
-      const normalizeDateStr = (dateStr) => {
-        if (!dateStr) return "";
-        let str = String(dateStr).trim();
-        if (str.includes('/')) {
-          const parts = str.split('/');
-          if (parts.length === 3) {
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-          }
-        }
-        return str;
+  // Master Data
+  const masterData = [
+    ...(students || []).map(s => ({ nisn: String(s.nisn || "").trim(), nama: s.nama, kelas: s.kelas, peran: "Siswa" })),
+    ...(teachers || []).map(g => ({ nisn: String(g.nip || "").trim(), nama: g.nama, kelas: g.jabatan || 'Guru', peran: "Guru" }))
+  ];
+
+  // Kumpulkan ID dari mereka yang SUDAH ABSEN
+  const setSudahAbsen = new Set();
+  attendanceLogs.forEach(row => {
+    let rowDate = normalizeDateStr(getLogDate(row));
+    let rowJenis = getLogJenis(row);
+    
+    if (rowDate === targetDate && rowJenis.toLowerCase() === jenisFilter.toLowerCase()) {
+      const idAbsen = String(getLogId(row) || "").trim();
+      if (idAbsen) setSudahAbsen.add(idAbsen);
+    }
+  });
+
+  // Filter daftar yang BELUM ABSEN
+  const listBelumAbsen = masterData.filter(item => {
+    if (!item.nisn) return false;
+
+    const sudahAbsen = setSudahAbsen.has(item.nisn);
+    const matchClass = classFilter === "ALL" || item.kelas === classFilter;
+    const matchRole = roleFilter === "ALL" || item.peran === roleFilter;
+    const matchSearch = item.nama.toLowerCase().includes(searchFilter) || item.nisn.includes(searchFilter);
+
+    return !sudahAbsen && matchClass && matchRole && matchSearch;
+  });
+
+  tbody.innerHTML = "";
+
+  if (listBelumAbsen.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs font-medium text-slate-400">Semua telah mengisi absensi / Tidak ada data yang cocok.</td></tr>`;
+    return;
+  }
+
+  // Render Baris
+  listBelumAbsen.forEach((item) => {
+    const row = document.createElement("tr");
+    row.className = "hover:bg-slate-50 transition border-b border-slate-100";
+
+    row.innerHTML = `
+      <td class="px-6 py-3.5 font-mono text-xs text-slate-600">${item.nisn}</td>
+      <td class="px-6 py-3.5 font-semibold text-slate-800">${item.nama}</td>
+      <td class="px-6 py-3.5 text-xs text-slate-500">${item.kelas}</td>
+      <td class="px-6 py-3.5">
+        <span class="px-2.5 py-1 text-[10px] font-bold rounded-full ${item.peran === 'Guru' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}">
+          ${item.peran}
+        </span>
+      </td>
+      <td class="px-6 py-3.5">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Hadir')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition shadow-xs">✓ Hadir</button>
+          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Izin')" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition shadow-xs">Izin</button>
+          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Sakit')" class="px-2.5 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-lg transition shadow-xs">Sakit</button>
+          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Alfa')" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition shadow-xs">Alfa</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+    // =========================================================
+    // 2. FUNGSI SIMPAN ABSEN MANUAL DARI TABEL BELUM ABSEN
+    // =========================================================
+    async function simpanAbsenManual(idUser, namaUser, kelasUser, peranUser, statusAbsen) {
+      const selectedDate = document.getElementById("belum-date-filter")?.value || new Date().toISOString().split('T')[0];
+      const selectedJenis = document.getElementById("belum-jenis-filter")?.value || "Masuk Sekolah";
+      const now = new Date();
+
+      const logEntry = {
+        timestamp: `${selectedDate} ${now.toLocaleTimeString('id-ID')}`,
+        date: selectedDate,
+        time: now.toLocaleTimeString('id-ID'),
+        nisn: idUser,
+        nama: namaUser,
+        kelas: kelasUser,
+        jenisAbsen: selectedJenis,
+        status: statusAbsen,
+        peran: peranUser,
+        method: 'Aksi Manual Admin'
       };
 
-      const targetDate = normalizeDateStr(rawSelectedDate);
-      const classFilter = document.getElementById("belum-class-filter")?.value || "ALL";
-      const jenisFilter = document.getElementById("belum-jenis-filter")?.value || "Masuk Sekolah";
-      const roleFilter = document.getElementById("belum-role-filter")?.value || "ALL";
-      const searchFilter = document.getElementById("belum-name-search")?.value?.toLowerCase() || "";
+      attendanceLogs.unshift(Object.assign({}, logEntry));
+      normalizeAttendanceLogs();
+      updateDashboardStats(); 
+      renderRecentTable(); 
+      renderRekapTable(); 
+      renderBelumAbsenTable();
 
-      const masterData = [
-        ...(students || []).map(s => ({ nisn: String(s.nisn || "").trim(), nama: s.nama, kelas: s.kelas, peran: "Siswa" })),
-        ...(teachers || []).map(g => ({ nisn: String(g.nip || "").trim(), nama: g.nama, kelas: g.jabatan || 'Guru', peran: "Guru" }))
-      ];
+      showToast(`Absensi [${statusAbsen}] berhasil disimpan untuk ${namaUser}`);
+      showSyncBadge("Menyimpan ke Stein HQ...", "loading");
 
-      const setSudahAbsen = new Set();
-      attendanceLogs.forEach(row => {
-        let rowDate = normalizeDateStr(getLogDate(row));
-        let rowJenis = getLogJenis(row);
-        
-        if (rowDate === targetDate && rowJenis.toLowerCase() === jenisFilter.toLowerCase()) {
-          const idAbsen = String(getLogId(row) || "").trim();
-          if (idAbsen) setSudahAbsen.add(idAbsen);
-        }
-      });
-
-      const listBelumAbsen = masterData.filter(item => {
-        if (!item.nisn) return false;
-
-        const sudahAbsen = setSudahAbsen.has(item.nisn);
-        const matchClass = classFilter === "ALL" || item.kelas === classFilter;
-        const matchRole = roleFilter === "ALL" || item.peran === roleFilter;
-        const matchSearch = item.nama.toLowerCase().includes(searchFilter) || item.nisn.includes(searchFilter);
-
-        return !sudahAbsen && matchClass && matchRole && matchSearch;
-      });
-
-      tbody.innerHTML = "";
-
-      if (listBelumAbsen.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs font-medium text-slate-400">Semua telah mengisi absensi / Tidak ada data yang cocok.</td></tr>`;
-        return;
+      try {
+        await postSteinSheet('Absensi', [logEntry]);
+        showSyncBadge("Tersimpan di Stein HQ", "success");
+      } catch (err) {
+        console.error(err);
+        showSyncBadge("Gagal Simpan ke Stein HQ", "error");
       }
-
-      tbody.innerHTML = listBelumAbsen.map((item) => `
-        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-          <td class="px-6 py-3.5 font-mono text-xs text-slate-600">${item.nisn}</td>
-          <td class="px-6 py-3.5 font-semibold text-slate-800">${item.nama}</td>
-          <td class="px-6 py-3.5 text-xs text-slate-500">${item.kelas}</td>
-          <td class="px-6 py-3.5">
-            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full ${item.peran === 'Guru' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}">${item.peran}</span>
-          </td>
-          <td class="px-6 py-3.5">
-            <button onclick="processAttendanceScan('${item.nisn}', 'Manual Belum Absen')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
-              <i class="fa-solid fa-check mr-1"></i> Absenkan Manual
-            </button>
-          </td>
-        </tr>
-      `).join('');
     }
+
   </script>
 </body>
 </html>
