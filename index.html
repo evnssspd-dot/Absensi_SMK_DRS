@@ -201,7 +201,7 @@
               </div>
             </div>
 
-            <!-- PERBAIKAN: Tombol Status Kehadiran (Hadir, Alfa, Izin, Sakit) -->
+            <!-- Tombol Status Kehadiran -->
             <div class="mt-6 pt-4 border-t border-slate-100">
               <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Status Kehadiran:</label>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="scan-mode-container">
@@ -347,12 +347,7 @@
           <div class="p-6 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div><h3 class="font-bold text-slate-800 text-lg">Daftar Belum Mengisi Absensi</h3><p class="text-xs text-slate-500">Realtime — filter menurut tanggal, kelas, jenis sesi, dan peran</p></div>
             <div class="flex flex-wrap items-center gap-3">
-              <input 
-  type="date" 
-  id="belum-date-filter" 
-  onchange="renderBelumAbsenTable()" 
-  class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-xs focus:ring-2 focus:ring-indigo-500 outline-none" 
-/>
+              <input type="date" id="belum-date-filter" onchange="renderBelumAbsenTable()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
               <select id="belum-class-filter" onchange="renderBelumAbsenTable()" class="px-3 py-2 bg-slate-50 border rounded-xl text-xs font-semibold">
                 <option value="ALL">Semua Kelas</option>
               </select>
@@ -390,7 +385,7 @@
               <img id="profil-logo-preview" src="https://via.placeholder.com/100?text=Logo" class="w-20 h-20 object-cover rounded-xl border bg-white p-1" alt="Logo Preview">
               <div class="flex-1 text-center sm:text-left">
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Logo Sekolah</label>
-                <p class="text-xs text-slate-500 mb-2">Upload file gambar logo (.png/.jpg) maksimal 2MB</p>
+                <p class="text-xs text-slate-500 mb-2">Upload file gambar logo (.png/.jpg) otomatis dikompres</p>
                 <input type="file" id="profil-logo-input" accept="image/*" onchange="previewLogoSekolah(event)" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
               </div>
             </div>
@@ -451,7 +446,7 @@
           <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">No HP Ortu</label><input type="text" id="form-nohp" placeholder="0812..." class="w-full px-4 py-2 bg-slate-50 border rounded-xl text-sm"></div>
         </div>
 
-        <!-- FITUR UPLOAD FOTO SISWA -->
+        <!-- FITUR UPLOAD FOTO SISWA DENGAN KOMPRESI OTOMATIS -->
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Foto Siswa</label>
           <input type="file" id="form-foto-siswa" accept="image/*" onchange="previewFotoUpload(event, 'previewFotoSiswa')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border rounded-xl bg-slate-50">
@@ -484,7 +479,7 @@
           <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">No HP / WA</label><input type="text" id="form-guru-nohp" placeholder="0812..." class="w-full px-4 py-2 bg-slate-50 border rounded-xl text-sm"></div>
         </div>
 
-        <!-- UPLOAD FOTO GURU -->
+        <!-- UPLOAD FOTO GURU DENGAN KOMPRESI OTOMATIS -->
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Foto Guru</label>
           <input type="file" id="form-foto-guru" accept="image/*" onchange="previewFotoUpload(event, 'previewFotoGuru')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border rounded-xl bg-slate-50">
@@ -746,7 +741,7 @@
     function onScanSuccess(decodedText) { processAttendanceScan(decodedText.trim(), 'QR Code'); }
     function onScanFailure(error) {}
 
-    /* PERBAIKAN: Handler Pilihan Mode Status Kehadiran (Hadir, Alfa, Izin, Sakit) */
+    /* Handler Pilihan Mode Status Kehadiran */
     function setScanMode(mode) {
       if (currentJenisAbsen === 'Pulang') return;
       currentScanMode = mode;
@@ -815,7 +810,7 @@
       const personRole = isSiswa ? 'Siswa' : 'Guru';
 
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
+      const todayStr = getTodayLocalDateStr();
 
       const already = attendanceLogs.some(log =>
         String(getLogId(log)) === idCode &&
@@ -876,31 +871,79 @@
         <p class="text-xs font-bold text-rose-600">Sudah mengisi absen ${jenis} hari ini!</p>`;
     }
 
-    /* ============ UPLOAD & IMPORT EXCEL ============ */
-    function previewFotoUpload(event, previewImgId) {
-      const file = event.target.files[0];
-      if (!file) return;
-      if (file.size > 2 * 1024 * 1024) { alert("Ukuran file terlalu besar! Maksimal 2MB."); event.target.value = ""; return; }
+    /* ============ UPLOAD & KOMPRESI FOTO OTOMATIS ============ */
+    // Utility Canvas untuk Resize & Kompresi Foto
+    function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
 
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        document.getElementById(previewImgId).src = e.target.result;
-        tempFotoBase64 = e.target.result;
-      };
-      reader.readAsDataURL(file);
+            if (width > height) {
+              if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width = Math.round((width * maxHeight) / height);
+                height = maxHeight;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Kompresi hasil ke format image/jpeg dengan quality 0.7
+            const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressedBase64);
+          };
+          img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+      });
     }
 
-    function previewLogoSekolah(event) {
+    async function previewFotoUpload(event, previewImgId) {
       const file = event.target.files[0];
       if (!file) return;
-      if (file.size > 2 * 1024 * 1024) { alert("Ukuran logo maksimal 2MB."); event.target.value = ""; return; }
 
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        document.getElementById('profil-logo-preview').src = e.target.result;
-        schoolProfile.logoUrl = e.target.result;
-      };
-      reader.readAsDataURL(file);
+      try {
+        showSyncBadge("Mengompresi Foto...", "loading");
+        const compressedBase64 = await compressImage(file, 500, 600, 0.7);
+        document.getElementById(previewImgId).src = compressedBase64;
+        tempFotoBase64 = compressedBase64;
+        showToast("Foto berhasil diunggah & dikompres!", "success");
+        showSyncBadge("Terkoneksi ke Stein HQ", "success");
+      } catch (err) {
+        console.error("Compression error:", err);
+        showToast("Gagal mengompres foto", "error");
+      }
+    }
+
+    async function previewLogoSekolah(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        showSyncBadge("Mengompresi Logo...", "loading");
+        const compressedBase64 = await compressImage(file, 300, 300, 0.8);
+        document.getElementById('profil-logo-preview').src = compressedBase64;
+        schoolProfile.logoUrl = compressedBase64;
+        showToast("Logo berhasil dikompres!", "success");
+        showSyncBadge("Terkoneksi ke Stein HQ", "success");
+      } catch (err) {
+        console.error("Logo Error:", err);
+        showToast("Gagal memproses logo", "error");
+      }
     }
 
     function downloadExcelTemplate(type) {
@@ -977,6 +1020,7 @@
       document.getElementById('form-nisn').value = ''; document.getElementById('form-nisn').removeAttribute('readonly');
       document.getElementById('form-nama').value = ''; document.getElementById('form-nohp').value = '';
       document.getElementById('previewFotoSiswa').src = 'https://via.placeholder.com/100?text=Foto';
+      document.getElementById('form-foto-siswa').value = '';
       tempFotoBase64 = '';
       document.getElementById('modal-siswa').classList.remove('hidden');
     }
@@ -988,6 +1032,7 @@
       document.getElementById('form-nama').value = s.nama; document.getElementById('form-kelas').value = s.kelas;
       document.getElementById('form-jk').value = s.jk; document.getElementById('form-nohp').value = s.nohp || '';
       document.getElementById('previewFotoSiswa').src = s.fotoUrl || 'https://via.placeholder.com/100?text=Foto';
+      document.getElementById('form-foto-siswa').value = '';
       tempFotoBase64 = s.fotoUrl || '';
       document.getElementById('modal-siswa').classList.remove('hidden');
     }
@@ -1063,6 +1108,7 @@
       document.getElementById('form-guru-nip').value = ''; document.getElementById('form-guru-nip').removeAttribute('readonly');
       document.getElementById('form-guru-nama').value = ''; document.getElementById('form-guru-jabatan').value = ''; document.getElementById('form-guru-nohp').value = '';
       document.getElementById('previewFotoGuru').src = 'https://via.placeholder.com/100?text=Foto';
+      document.getElementById('form-foto-guru').value = '';
       tempFotoBase64 = '';
       document.getElementById('modal-guru').classList.remove('hidden');
     }
@@ -1074,6 +1120,7 @@
       document.getElementById('form-guru-nama').value = g.nama; document.getElementById('form-guru-jabatan').value = g.jabatan;
       document.getElementById('form-guru-jk').value = g.jk; document.getElementById('form-guru-nohp').value = g.nohp || '';
       document.getElementById('previewFotoGuru').src = g.fotoUrl || 'https://via.placeholder.com/100?text=Foto';
+      document.getElementById('form-foto-guru').value = '';
       tempFotoBase64 = g.fotoUrl || '';
       document.getElementById('modal-guru').classList.remove('hidden');
     }
@@ -1266,481 +1313,177 @@
 
     /* ============ LAYOUT KARTU A4 (6 Kartu per Halaman) ============ */
     function renderKtsCards() {
-  const container = document.getElementById('print-section');
-  const cardType = document.getElementById('kts-type-filter').value;
-  const classFilter = document.getElementById('kts-class-filter').value;
+      const container = document.getElementById('print-section');
+      const cardType = document.getElementById('kts-type-filter').value;
+      const classFilter = document.getElementById('kts-class-filter').value;
 
-  let list = [];
-  if (cardType === 'SISWA') {
-    list = students.filter(s => classFilter === 'ALL' || s.kelas === classFilter).map(s => ({
-      id: s.nisn, nama: s.nama, sub: s.kelas, role: 'SISWA', foto: s.fotoUrl
-    }));
-  } else {
-    list = teachers.map(g => ({
-      id: g.nip, nama: g.nama, sub: g.jabatan || 'Guru', role: 'GURU / STAF', foto: g.fotoUrl
-    }));
-  }
-
-  if (list.length === 0) {
-    container.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10 font-bold">Tidak ada data untuk dicetak.</div>`;
-    return;
-  }
-
-  container.innerHTML = list.map((item, idx) => {
-    const isSiswa = item.role === 'SISWA';
-    
-    // Tema Warna Dinamis
-    const headerBg = isSiswa 
-      ? 'bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 text-white' 
-      : 'bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 text-white';
-      
-    const badgeRoleBg = isSiswa ? 'bg-amber-400 text-slate-900' : 'bg-sky-300 text-slate-900';
-    const subColor = isSiswa ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-800 border-amber-200';
-    const photoBorder = isSiswa ? 'border-indigo-500' : 'border-amber-500';
-
-    // Penyesuaian ukuran nama
-    const namaStr = item.nama || '-';
-    const nameFontSize = namaStr.length > 18 ? 'text-[9.5px]' : 'text-[11px]';
-
-    // Placeholder jika foto kosong
-    const defaultPlaceholder = 'https://via.placeholder.com/150x200/e2e8f0/64748b?text=FOTO';
-    const fotoSrc = (item.foto && item.foto.trim() !== '') ? item.foto : defaultPlaceholder;
-
-    return `
-      <div class="kts-card bg-white rounded-2xl flex flex-col justify-between border border-slate-200/80 shadow-md relative overflow-hidden transition hover:shadow-lg">
-        
-        <!-- Background Dekorasi -->
-        <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-indigo-500/10 pointer-events-none"></div>
-
-        <!-- Header Kartu -->
-        <div class="${headerBg} px-3 py-1.5 flex items-center space-x-2.5 relative z-10">
-          <div class="w-7 h-7 shrink-0 bg-white rounded-lg p-0.5 flex items-center justify-center shadow-xs">
-            <img src="${schoolProfile.logoUrl || 'https://via.placeholder.com/40'}" class="max-w-full max-h-full object-contain" onError="this.src='https://via.placeholder.com/40?text=Logo'">
-          </div>
-          <div class="flex-1 min-w-0">
-            <h5 class="text-[10px] font-black uppercase tracking-tight truncate leading-tight">${schoolProfile.namaSekolah}</h5>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <span class="text-[7px] font-extrabold ${badgeRoleBg} px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                KARTU TANDA ${item.role}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bodi Utama Kartu -->
-        <div class="px-3 py-1.5 flex items-center space-x-2.5 relative z-10 my-auto">
-          
-          <!-- FRAME FOTO PROFIL (UKURAN DIKUNCI MATI DENGAN STYLE CSS) -->
-          <div class="shrink-0 rounded-xl border-2 ${photoBorder} overflow-hidden shadow-xs bg-slate-100 flex items-center justify-center" style="width: 60px; height: 76px; min-width: 60px; min-height: 76px;">
-            <img 
-              src="${fotoSrc}" 
-              class="w-full h-full object-cover" 
-              style="width: 100%; height: 100%; object-fit: cover;"
-              onError="this.onerror=null; this.src='${defaultPlaceholder}';"
-            />
-          </div>
-          
-          <!-- Detail Info -->
-          <div class="flex-1 min-w-0 space-y-0.5">
-            <!-- NAMA LENGKAP -->
-            <p class="${nameFontSize} font-black text-slate-800 leading-tight line-clamp-2 break-words">
-              ${namaStr}
-            </p>
-            
-            <div class="flex items-center gap-1 text-[8px]">
-              <span class="font-semibold text-slate-400">ID:</span>
-              <span class="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.2 rounded">${item.id}</span>
-            </div>
-
-            <div class="text-[8px] flex items-center gap-1">
-              <span class="font-semibold text-slate-400">${isSiswa ? 'Kelas' : 'Jabatan'}:</span>
-              <span class="font-extrabold px-1 py-0.2 rounded border ${subColor}">${item.sub}</span>
-            </div>
-            
-            <!-- Teks TA -->
-            <div class="pt-0.5">
-              <span class="inline-block px-1.5 py-0.5 bg-slate-800 text-amber-300 font-extrabold text-[7.5px] rounded-md tracking-tight leading-none">
-                TA ${academicYear.tahunPelajaran} (${academicYear.semester})
-              </span>
-            </div>
-          </div>
-
-          <!-- QR Code -->
-          <div class="shrink-0 bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs flex items-center justify-center">
-            <div id="qrcode-${idx}" class="w-[66px] h-[66px] flex items-center justify-center"></div>
-          </div>
-        </div>
-
-        <!-- Footer Kartu -->
-        <div class="bg-slate-50 border-t border-slate-100 px-3 py-1 flex justify-between items-center text-[8px] relative z-10">
-          <span class="font-black text-slate-700">
-            NPSN: <span class="text-indigo-600 font-bold">${schoolProfile.npsn}</span>
-          </span>
-          <span class="font-extrabold text-indigo-700 uppercase tracking-wider text-[7px]">
-            Absensi QR System
-          </span>
-        </div>
-
-      </div>
-    `;
-  }).join('');
-
-  // Generate QR Code
-  list.forEach((item, idx) => {
-    const qrEl = document.getElementById(`qrcode-${idx}`);
-    if (qrEl) {
-      qrEl.innerHTML = '';
-      new QRCode(qrEl, {
-        text: String(item.id),
-        width: 66,
-        height: 66,
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    }
-  });
-}
-
-    /* ============ REKAP & DASHBOARD STATS ============ */
-    // =========================================================
-// HELPER BANTUAN TANGGAL LOKAL (WIB / Mencegah Bug UTC)
-// =========================================================
-function getTodayLocalDateStr() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`; // Format pasti: YYYY-MM-DD sesuai jam HP/Komputer
-}
-
-// =========================================================
-// 1. DASHBOARD STATS (FIXED REALTIME TANGGAL)
-// =========================================================
-function updateDashboardStats() {
-  const todayStr = getTodayLocalDateStr();
-
-  // Filter HANYA log untuk HARI INI dan Jenis 'Masuk Sekolah'
-  const todayLogs = attendanceLogs.filter(l => {
-    return getLogDate(l) === todayStr && getLogJenis(l) === 'Masuk Sekolah';
-  });
-  
-  const totalSiswaGuru = (students ? students.length : 0) + (teachers ? teachers.length : 0);
-  const hadirCount = todayLogs.filter(l => l.status === 'Hadir' || l.status === 'Terlambat').length;
-  const izinCount = todayLogs.filter(l => l.status === 'Izin' || l.status === 'Sakit').length;
-  const alfaCount = todayLogs.filter(l => l.status === 'Alfa').length;
-  
-  // Belum Absen = Total Pengguna dikurangi yang SUDAH melakukan aksi (Hadir/Izin/Sakit/Alfa) HARI INI
-  const belumCount = Math.max(0, totalSiswaGuru - (hadirCount + izinCount + alfaCount));
-
-  // Update DOM Element
-  if (document.getElementById('stat-total-siswa')) {
-    document.getElementById('stat-total-siswa').innerText = totalSiswaGuru;
-  }
-  if (document.getElementById('stat-hadir')) {
-    document.getElementById('stat-hadir').innerText = hadirCount;
-  }
-  if (document.getElementById('stat-izin')) {
-    document.getElementById('stat-izin').innerText = izinCount;
-  }
-  if (document.getElementById('stat-alpa')) {
-    document.getElementById('stat-alpa').innerText = alfaCount + belumCount;
-  }
-
-  const pct = totalSiswaGuru > 0 ? Math.round((hadirCount / totalSiswaGuru) * 100) : 0;
-  if (document.getElementById('stat-hadir-pct')) {
-    document.getElementById('stat-hadir-pct').innerText = `${pct}% dari total`;
-  }
-
-  if (typeof updatePieChart === 'function') {
-    updatePieChart(hadirCount, izinCount, alfaCount + belumCount);
-  }
-}
-
-// =========================================================
-// 2. TABEL AKTIVITAS TERBARU (FIXED: HANYA DARI HARI INI)
-// =========================================================
-function renderRecentTable() {
-  const tbody = document.getElementById('dashboard-recent-table');
-  if (!tbody) return;
-
-  const todayStr = getTodayLocalDateStr();
-
-  // FILTER: Hanya ambil log yang terjadi HARI INI
-  const todayRecent = attendanceLogs.filter(l => getLogDate(l) === todayStr);
-
-  if (todayRecent.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-medium">Belum ada aktivitas absensi hari ini.</td></tr>`;
-    return;
-  }
-
-  // Ambil 5 aktivitas terbaru hari ini
-  const recent = todayRecent.slice(0, 5);
-
-  tbody.innerHTML = recent.map(l => `
-    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-      <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.time || l.timestamp || '-'}</td>
-      <td class="px-6 py-3.5 font-bold font-mono text-slate-700">${getLogId(l) || l.nisn || '-'}</td>
-      <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama || '-'}</td>
-      <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
-      <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
-      <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.peran || 'Siswa'} (${l.kelas || '-'})</td>
-    </tr>
-  `).join('');
-}
-
-// =========================================================
-// 3. BADGE STATUS
-// =========================================================
-function getBadgeStatus(status) {
-  if (status === 'Hadir') return `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">Hadir</span>`;
-  if (status === 'Terlambat') return `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">Terlambat</span>`;
-  if (status === 'Alfa') return `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold">Alfa</span>`;
-  if (status === 'Izin' || status === 'Sakit') return `<span class="px-2.5 py-1 bg-sky-100 text-sky-800 rounded-lg text-xs font-bold">${status}</span>`;
-  if (status === 'Pulang') return `<span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-bold">Pulang</span>`;
-  return `<span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-bold">${status}</span>`;
-}
-
-// =========================================================
-// TABEL REKAP ABSENSI (FIXED: DEFAULT TANGGAL HARI INI)
-// =========================================================
-function renderRekapTable() {
-  const tbody = document.getElementById('rekap-table-body');
-  if (!tbody) return;
-
-  const dateFilterInput = document.getElementById('rekap-date-filter');
-  const todayStr = getTodayLocalDateStr();
-
-  // 1. SET DEFAULT INPUT TANGGAL KE HARI INI (REALTIME) JIKA MASIH KOSONG
-  if (dateFilterInput && !dateFilterInput.value) {
-    dateFilterInput.value = todayStr;
-  }
-
-  // 2. AMBIL NILAI FILTER
-  const dateFilter = dateFilterInput?.value || todayStr;
-  const dateText = document.getElementById('rekap-date-text')?.value.trim() || "";
-  const nameSearch = document.getElementById('rekap-name-search')?.value.toLowerCase().trim() || "";
-  const jenisFilter = document.getElementById('rekap-jenis-filter')?.value || "ALL";
-  const classFilter = document.getElementById('rekap-class-filter')?.value || "ALL";
-
-  // Helper normalisasi tanggal agar cocok dengan YYYY-MM-DD
-  const normalizeDate = (dStr) => {
-    if (!dStr) return "";
-    let str = String(dStr).trim();
-    if (str.includes('/')) {
-      const parts = str.split('/');
-      if (parts.length === 3) {
-        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      let list = [];
+      if (cardType === 'SISWA') {
+        list = students.filter(s => classFilter === 'ALL' || s.kelas === classFilter).map(s => ({
+          id: s.nisn, nama: s.nama, sub: s.kelas, role: 'SISWA', foto: s.fotoUrl
+        }));
+      } else {
+        list = teachers.map(g => ({
+          id: g.nip, nama: g.nama, sub: g.jabatan || 'Guru', role: 'GURU / STAF', foto: g.fotoUrl
+        }));
       }
-    }
-    return str;
-  };
 
-  // 3. FILTER DATA LOG
-  const filtered = attendanceLogs.filter(l => {
-    const logDate = normalizeDate(getLogDate(l));
-    
-    // Cocokkan Tanggal (Default: Hari Ini)
-    const mDate = !dateFilter || logDate === normalizeDate(dateFilter);
-    const mDateText = !dateText || logDate.includes(dateText);
-    const mName = !nameSearch || 
-                  (l.nama && l.nama.toLowerCase().includes(nameSearch)) || 
-                  (getLogId(l) && getLogId(l).toLowerCase().includes(nameSearch));
-    const mJenis = jenisFilter === 'ALL' || getLogJenis(l) === jenisFilter;
-    const mClass = classFilter === 'ALL' || l.kelas === classFilter;
-
-    return mDate && mDateText && mName && mJenis && mClass;
-  });
-
-  // 4. JIKA TIDAK ADA DATA HARI INI
-  if (filtered.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="p-8 text-center text-slate-400 font-medium">
-          Belum ada log absensi untuk tanggal <span class="font-bold text-slate-600">${dateFilter}</span>
-        </td>
-      </tr>`;
-    return;
-  }
-
-  // 5. RENDER BARIS TABEL
-  tbody.innerHTML = filtered.map(l => `
-    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-      <td class="px-6 py-3.5 text-xs text-slate-500 font-semibold">${getLogDate(l)} ${l.time || ''}</td>
-      <td class="px-6 py-3.5 font-mono font-bold text-slate-700">${getLogId(l)}</td>
-      <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama}</td>
-      <td class="px-6 py-3.5 text-xs text-slate-600 font-medium">${l.kelas}</td>
-      <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
-      <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
-      <td class="px-6 py-3.5 text-xs text-slate-500">${l.peran || 'Siswa'}</td>
-    </tr>
-  `).join('');
-}
-
-// =========================================================
-// 5. TABEL BELUM ABSEN (FIXED TANGGAL LOKAL)
-// =========================================================
-async function renderBelumAbsenTable() {
-  const tbody = document.getElementById("belum-table-body");
-  if (!tbody) return;
-
-  const dateInput = document.getElementById("belum-date-filter");
-  const todayStr = getTodayLocalDateStr();
-  
-  // Set default tanggal hari ini (Lokal) jika kosong
-  if (dateInput && !dateInput.value) {
-    dateInput.value = todayStr;
-  }
-
-  let rawSelectedDate = dateInput?.value || todayStr;
-
-  const normalizeDateStr = (dateStr) => {
-    if (!dateStr) return "";
-    let str = String(dateStr).trim();
-    if (str.includes('/')) {
-      const parts = str.split('/');
-      if (parts.length === 3) {
-        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
-    }
-    return str;
-  };
-
-  const targetDate = normalizeDateStr(rawSelectedDate);
-  const classFilter = document.getElementById("belum-class-filter")?.value || "ALL";
-  const jenisFilter = document.getElementById("belum-jenis-filter")?.value || "Masuk Sekolah";
-  const roleFilter = document.getElementById("belum-role-filter")?.value || "ALL";
-  const searchFilter = document.getElementById("belum-name-search")?.value?.toLowerCase() || "";
-
-  // Master Data
-  const masterData = [
-    ...(students || []).map(s => ({ nisn: String(s.nisn || "").trim(), nama: s.nama, kelas: s.kelas, peran: "Siswa" })),
-    ...(teachers || []).map(g => ({ nisn: String(g.nip || "").trim(), nama: g.nama, kelas: g.jabatan || 'Guru', peran: "Guru" }))
-  ];
-
-  // Kumpulkan ID dari mereka yang SUDAH ABSEN
-  const setSudahAbsen = new Set();
-  attendanceLogs.forEach(row => {
-    let rowDate = normalizeDateStr(getLogDate(row));
-    let rowJenis = getLogJenis(row);
-    
-    if (rowDate === targetDate && rowJenis.toLowerCase() === jenisFilter.toLowerCase()) {
-      const idAbsen = String(getLogId(row) || "").trim();
-      if (idAbsen) setSudahAbsen.add(idAbsen);
-    }
-  });
-
-  // Filter daftar yang BELUM ABSEN
-  const listBelumAbsen = masterData.filter(item => {
-    if (!item.nisn) return false;
-
-    const sudahAbsen = setSudahAbsen.has(item.nisn);
-    const matchClass = classFilter === "ALL" || item.kelas === classFilter;
-    const matchRole = roleFilter === "ALL" || item.peran === roleFilter;
-    const matchSearch = item.nama.toLowerCase().includes(searchFilter) || item.nisn.includes(searchFilter);
-
-    return !sudahAbsen && matchClass && matchRole && matchSearch;
-  });
-
-  tbody.innerHTML = "";
-
-  if (listBelumAbsen.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs font-medium text-slate-400">Semua telah mengisi absensi / Tidak ada data yang cocok.</td></tr>`;
-    return;
-  }
-
-  // Render Baris
-  listBelumAbsen.forEach((item) => {
-    const row = document.createElement("tr");
-    row.className = "hover:bg-slate-50 transition border-b border-slate-100";
-
-    row.innerHTML = `
-      <td class="px-6 py-3.5 font-mono text-xs text-slate-600">${item.nisn}</td>
-      <td class="px-6 py-3.5 font-semibold text-slate-800">${item.nama}</td>
-      <td class="px-6 py-3.5 text-xs text-slate-500">${item.kelas}</td>
-      <td class="px-6 py-3.5">
-        <span class="px-2.5 py-1 text-[10px] font-bold rounded-full ${item.peran === 'Guru' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}">
-          ${item.peran}
-        </span>
-      </td>
-      <td class="px-6 py-3.5">
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Hadir')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition shadow-xs">✓ Hadir</button>
-          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Izin')" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition shadow-xs">Izin</button>
-          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Sakit')" class="px-2.5 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-lg transition shadow-xs">Sakit</button>
-          <button type="button" onclick="simpanAbsenManual('${item.nisn}', '${item.nama}', '${item.kelas}', '${item.peran}', 'Alfa')" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition shadow-xs">Alfa</button>
-        </div>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-    // =========================================================
-    // 2. FUNGSI SIMPAN ABSEN MANUAL DARI TABEL BELUM ABSEN
-    // =========================================================
-    async function simpanAbsenManual(idUser, namaUser, kelasUser, peranUser, statusAbsen) {
-      const selectedDate = document.getElementById("belum-date-filter")?.value || new Date().toISOString().split('T')[0];
-      const selectedJenis = document.getElementById("belum-jenis-filter")?.value || "Masuk Sekolah";
-      const now = new Date();
-
-      const logEntry = {
-        timestamp: `${selectedDate} ${now.toLocaleTimeString('id-ID')}`,
-        date: selectedDate,
-        time: now.toLocaleTimeString('id-ID'),
-        nisn: idUser,
-        nama: namaUser,
-        kelas: kelasUser,
-        jenisAbsen: selectedJenis,
-        status: statusAbsen,
-        peran: peranUser,
-        method: 'Aksi Manual Admin'
-      };
-
-      attendanceLogs.unshift(Object.assign({}, logEntry));
-      normalizeAttendanceLogs();
-      updateDashboardStats(); 
-      renderRecentTable(); 
-      renderRekapTable(); 
-      renderBelumAbsenTable();
-
-      showToast(`Absensi [${statusAbsen}] berhasil disimpan untuk ${namaUser}`);
-      showSyncBadge("Menyimpan ke Stein HQ...", "loading");
-
-      try {
-        await postSteinSheet('Absensi', [logEntry]);
-        showSyncBadge("Tersimpan di Stein HQ", "success");
-      } catch (err) {
-        console.error(err);
-        showSyncBadge("Gagal Simpan ke Stein HQ", "error");
-      }
-    }
-
-    // =========================================================
-    // 3. FUNGSI EKSPORED CSV ABSENSI
-    // =========================================================
-    function exportRekapCSV() {
-      if (attendanceLogs.length === 0) {
-        showToast("Tidak ada data absensi untuk diekspor", "error");
+      if (list.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10 font-bold">Tidak ada data untuk dicetak.</div>`;
         return;
       }
-      let csv = "Tanggal,Waktu,ID/NISN,Nama,Kelas/Jabatan,Sesi Absen,Status,Peran,Metode\n";
-      attendanceLogs.forEach(l => {
-        csv += `"${l.date}","${l.time}","${l.nisn}","${l.nama}","${l.kelas}","${l.jenisAbsen}","${l.status}","${l.peran}","${l.method}"\n`;
-      });
 
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.setAttribute("download", `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      container.innerHTML = list.map((item, idx) => {
+        const isSiswa = item.role === 'SISWA';
+        
+        const headerBg = isSiswa 
+          ? 'bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 text-white' 
+          : 'bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 text-white';
+          
+        const badgeRoleBg = isSiswa ? 'bg-amber-400 text-slate-900' : 'bg-sky-300 text-slate-900';
+        const subColor = isSiswa ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+        const photoBorder = isSiswa ? 'border-indigo-500' : 'border-amber-500';
+
+        const namaStr = item.nama || '-';
+        const nameFontSize = namaStr.length > 18 ? 'text-[9.5px]' : 'text-[11px]';
+
+        const defaultPlaceholder = 'https://via.placeholder.com/150x200/e2e8f0/64748b?text=FOTO';
+        const fotoSrc = (item.foto && item.foto.trim() !== '') ? item.foto : defaultPlaceholder;
+
+        return `
+          <div class="kts-card bg-white rounded-2xl flex flex-col justify-between border border-slate-200/80 shadow-md relative overflow-hidden transition hover:shadow-lg">
+            
+            <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-indigo-500/10 pointer-events-none"></div>
+
+            <div class="${headerBg} px-3 py-1.5 flex items-center space-x-2.5 relative z-10">
+              <div class="w-7 h-7 shrink-0 bg-white rounded-lg p-0.5 flex items-center justify-center shadow-xs">
+                <img src="${schoolProfile.logoUrl || 'https://via.placeholder.com/40'}" class="max-w-full max-h-full object-contain" onError="this.src='https://via.placeholder.com/40?text=Logo'">
+              </div>
+              <div class="flex-1 min-w-0">
+                <h5 class="text-[10px] font-black uppercase tracking-tight truncate leading-tight">${schoolProfile.namaSekolah}</h5>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[7px] font-extrabold ${badgeRoleBg} px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                    KARTU TANDA ${item.role}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="px-3 py-1.5 flex items-center space-x-2.5 relative z-10 my-auto">
+              <div class="shrink-0 rounded-xl border-2 ${photoBorder} overflow-hidden shadow-xs bg-slate-100 flex items-center justify-center" style="width: 60px; height: 76px; min-width: 60px; min-height: 76px;">
+                <img 
+                  src="${fotoSrc}" 
+                  class="w-full h-full object-cover" 
+                  style="width: 100%; height: 100%; object-fit: cover;"
+                  onError="this.onerror=null; this.src='${defaultPlaceholder}';"
+                />
+              </div>
+              
+              <div class="flex-1 min-w-0 space-y-0.5">
+                <p class="${nameFontSize} font-black text-slate-800 leading-tight line-clamp-2 break-words">
+                  ${namaStr}
+                </p>
+                
+                <div class="flex items-center gap-1 text-[8px]">
+                  <span class="font-semibold text-slate-400">ID:</span>
+                  <span class="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.2 rounded">${item.id}</span>
+                </div>
+
+                <div class="text-[8px] flex items-center gap-1">
+                  <span class="font-semibold text-slate-400">${isSiswa ? 'Kelas' : 'Jabatan'}:</span>
+                  <span class="font-extrabold px-1 py-0.2 rounded border ${subColor}">${item.sub}</span>
+                </div>
+                
+                <div class="pt-0.5">
+                  <span class="inline-block px-1.5 py-0.5 bg-slate-800 text-amber-300 font-extrabold text-[7.5px] rounded-md tracking-tight leading-none">
+                    TA ${academicYear.tahunPelajaran} (${academicYear.semester})
+                  </span>
+                </div>
+              </div>
+
+              <div class="shrink-0 bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs flex items-center justify-center">
+                <div id="qrcode-${idx}" class="w-[66px] h-[66px] flex items-center justify-center"></div>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 border-t border-slate-100 px-3 py-1 flex justify-between items-center text-[8px] relative z-10">
+              <span class="font-black text-slate-700">
+                NPSN: <span class="text-indigo-600 font-bold">${schoolProfile.npsn}</span>
+              </span>
+              <span class="font-extrabold text-indigo-700 uppercase tracking-wider text-[7px]">
+                Absensi QR System
+              </span>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      list.forEach((item, idx) => {
+        const qrEl = document.getElementById(`qrcode-${idx}`);
+        if (qrEl) {
+          qrEl.innerHTML = '';
+          new QRCode(qrEl, {
+            text: String(item.id),
+            width: 66,
+            height: 66,
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        }
+      });
     }
+
+    /* ============ REKAP & DASHBOARD STATS ============ */
+    function getTodayLocalDateStr() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function updateDashboardStats() {
+      const todayStr = getTodayLocalDateStr();
+
+      const todayLogs = attendanceLogs.filter(l => {
+        return getLogDate(l) === todayStr && getLogJenis(l) === 'Masuk Sekolah';
+      });
+      
+      const totalSiswaGuru = (students ? students.length : 0) + (teachers ? teachers.length : 0);
+      const hadirCount = todayLogs.filter(l => l.status === 'Hadir' || l.status === 'Terlambat').length;
+      const izinCount = todayLogs.filter(l => l.status === 'Izin' || l.status === 'Sakit').length;
+      const alfaCount = todayLogs.filter(l => l.status === 'Alfa').length;
+      
+      const belumCount = Math.max(0, totalSiswaGuru - (hadirCount + izinCount + alfaCount));
+
+      if (document.getElementById('stat-total-siswa')) {
+        document.getElementById('stat-total-siswa').innerText = totalSiswaGuru;
+      }
+      if (document.getElementById('stat-hadir')) {
+        document.getElementById('stat-hadir').innerText = hadirCount;
+      }
+      if (document.getElementById('stat-izin')) {
+        document.getElementById('stat-izin').innerText = izinCount;
+      }
+      if (document.getElementById('stat-alpa')) {
+        document.getElementById('stat-alpa').innerText = alfaCount + belumCount;
+      }
+
+      const pct = totalSiswaGuru > 0 ? Math.round((hadirCount / totalSiswaGuru) * 100) : 0;
+      if (document.getElementById('stat-hadir-pct')) {
+        document.getElementById('stat-hadir-pct').innerText = `${pct}% dari total`;
+      }
+
+      updatePieChart(hadirCount, izinCount, alfaCount + belumCount);
+    }
+
     function initChart() {
-      const ctx = document.getElementById('attendancePieChart').getContext('2d');
+      const ctx = document.getElementById('attendancePieChart');
+      if (!ctx) return;
       pieChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: ['Hadir', 'Izin / Sakit', 'Alfa / Belum Absen'],
+          labels: ['Hadir', 'Izin/Sakit', 'Alfa/Belum'],
           datasets: [{
             data: [0, 0, 0],
             backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
@@ -1750,17 +1493,214 @@ async function renderBelumAbsenTable() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } },
-          cutout: '70%'
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
         }
       });
     }
 
-    function updatePieChart(h, i, a) {
+    function updatePieChart(hadir, izin, alfa) {
       if (pieChartInstance) {
-        pieChartInstance.data.datasets[0].data = [h, i, a];
+        pieChartInstance.data.datasets[0].data = [hadir, izin, alfa];
         pieChartInstance.update();
       }
+    }
+
+    function renderRecentTable() {
+      const tbody = document.getElementById('dashboard-recent-table');
+      if (!tbody) return;
+
+      const todayStr = getTodayLocalDateStr();
+      const todayRecent = attendanceLogs.filter(l => getLogDate(l) === todayStr);
+
+      if (todayRecent.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-medium">Belum ada aktivitas absensi hari ini.</td></tr>`;
+        return;
+      }
+
+      const recent = todayRecent.slice(0, 5);
+
+      tbody.innerHTML = recent.map(l => `
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+          <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.time || l.timestamp || '-'}</td>
+          <td class="px-6 py-3.5 font-bold font-mono text-slate-700">${getLogId(l) || l.nisn || '-'}</td>
+          <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama || '-'}</td>
+          <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
+          <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
+          <td class="px-6 py-3.5 text-xs font-semibold text-slate-500">${l.peran || 'Siswa'} (${l.kelas || '-'})</td>
+        </tr>
+      `).join('');
+    }
+
+    function getBadgeStatus(status) {
+      if (status === 'Hadir') return `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">Hadir</span>`;
+      if (status === 'Terlambat') return `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">Terlambat</span>`;
+      if (status === 'Alfa') return `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold">Alfa</span>`;
+      if (status === 'Izin' || status === 'Sakit') return `<span class="px-2.5 py-1 bg-sky-100 text-sky-800 rounded-lg text-xs font-bold">${status}</span>`;
+      if (status === 'Pulang') return `<span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-bold">Pulang</span>`;
+      return `<span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-bold">${status}</span>`;
+    }
+
+    function renderRekapTable() {
+      const tbody = document.getElementById('rekap-table-body');
+      if (!tbody) return;
+
+      const dateFilterInput = document.getElementById('rekap-date-filter');
+      const todayStr = getTodayLocalDateStr();
+
+      if (dateFilterInput && !dateFilterInput.value) {
+        dateFilterInput.value = todayStr;
+      }
+
+      const dateFilter = dateFilterInput?.value || todayStr;
+      const dateText = document.getElementById('rekap-date-text')?.value.trim() || "";
+      const nameSearch = document.getElementById('rekap-name-search')?.value.toLowerCase().trim() || "";
+      const jenisFilter = document.getElementById('rekap-jenis-filter')?.value || "ALL";
+      const classFilter = document.getElementById('rekap-class-filter')?.value || "ALL";
+
+      const normalizeDate = (dStr) => {
+        if (!dStr) return "";
+        let str = String(dStr).trim();
+        if (str.includes('/')) {
+          const parts = str.split('/');
+          if (parts.length === 3) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          }
+        }
+        return str;
+      };
+
+      const filtered = attendanceLogs.filter(l => {
+        const logDate = normalizeDate(getLogDate(l));
+        
+        const mDate = !dateFilter || logDate === normalizeDate(dateFilter);
+        const mDateText = !dateText || logDate.includes(dateText);
+        const mName = !nameSearch || 
+                      (l.nama && l.nama.toLowerCase().includes(nameSearch)) || 
+                      (getLogId(l) && getLogId(l).toLowerCase().includes(nameSearch));
+        const mJenis = jenisFilter === 'ALL' || getLogJenis(l) === jenisFilter;
+        const mClass = classFilter === 'ALL' || l.kelas === classFilter;
+
+        return mDate && mDateText && mName && mJenis && mClass;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-8 text-center text-slate-400 font-medium">
+              Belum ada log absensi untuk tanggal <span class="font-bold text-slate-600">${dateFilter}</span>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(l => `
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+          <td class="px-6 py-3.5 text-xs text-slate-500 font-semibold">${getLogDate(l)} ${l.time || ''}</td>
+          <td class="px-6 py-3.5 font-mono font-bold text-slate-700">${getLogId(l)}</td>
+          <td class="px-6 py-3.5 font-bold text-slate-800">${l.nama}</td>
+          <td class="px-6 py-3.5 text-xs text-slate-600 font-medium">${l.kelas}</td>
+          <td class="px-6 py-3.5"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">${getLogJenis(l)}</span></td>
+          <td class="px-6 py-3.5">${getBadgeStatus(l.status)}</td>
+          <td class="px-6 py-3.5 text-xs text-slate-500">${l.peran || 'Siswa'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function exportRekapCSV() {
+      if (attendanceLogs.length === 0) { alert("Tidak ada data absensi untuk diekspor."); return; }
+      let csvContent = "data:text/csv;charset=utf-8,Waktu,Tanggal,Jam,ID_NISN_NIP,Nama,Kelas_Jabatan,Jenis_Sesi,Status,Peran\n";
+      attendanceLogs.forEach(l => {
+        csvContent += `"${l.timestamp}","${l.date}","${l.time}","${l.nisn}","${l.nama}","${l.kelas}","${l.jenisAbsen}","${l.status}","${l.peran}"\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Rekap_Absensi_${getTodayLocalDateStr()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    async function renderBelumAbsenTable() {
+      const tbody = document.getElementById("belum-table-body");
+      if (!tbody) return;
+
+      const dateInput = document.getElementById("belum-date-filter");
+      const todayStr = getTodayLocalDateStr();
+      
+      if (dateInput && !dateInput.value) {
+        dateInput.value = todayStr;
+      }
+
+      let rawSelectedDate = dateInput?.value || todayStr;
+
+      const normalizeDateStr = (dateStr) => {
+        if (!dateStr) return "";
+        let str = String(dateStr).trim();
+        if (str.includes('/')) {
+          const parts = str.split('/');
+          if (parts.length === 3) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          }
+        }
+        return str;
+      };
+
+      const targetDate = normalizeDateStr(rawSelectedDate);
+      const classFilter = document.getElementById("belum-class-filter")?.value || "ALL";
+      const jenisFilter = document.getElementById("belum-jenis-filter")?.value || "Masuk Sekolah";
+      const roleFilter = document.getElementById("belum-role-filter")?.value || "ALL";
+      const searchFilter = document.getElementById("belum-name-search")?.value?.toLowerCase() || "";
+
+      const masterData = [
+        ...(students || []).map(s => ({ nisn: String(s.nisn || "").trim(), nama: s.nama, kelas: s.kelas, peran: "Siswa" })),
+        ...(teachers || []).map(g => ({ nisn: String(g.nip || "").trim(), nama: g.nama, kelas: g.jabatan || 'Guru', peran: "Guru" }))
+      ];
+
+      const setSudahAbsen = new Set();
+      attendanceLogs.forEach(row => {
+        let rowDate = normalizeDateStr(getLogDate(row));
+        let rowJenis = getLogJenis(row);
+        
+        if (rowDate === targetDate && rowJenis.toLowerCase() === jenisFilter.toLowerCase()) {
+          const idAbsen = String(getLogId(row) || "").trim();
+          if (idAbsen) setSudahAbsen.add(idAbsen);
+        }
+      });
+
+      const listBelumAbsen = masterData.filter(item => {
+        if (!item.nisn) return false;
+
+        const sudahAbsen = setSudahAbsen.has(item.nisn);
+        const matchClass = classFilter === "ALL" || item.kelas === classFilter;
+        const matchRole = roleFilter === "ALL" || item.peran === roleFilter;
+        const matchSearch = item.nama.toLowerCase().includes(searchFilter) || item.nisn.includes(searchFilter);
+
+        return !sudahAbsen && matchClass && matchRole && matchSearch;
+      });
+
+      tbody.innerHTML = "";
+
+      if (listBelumAbsen.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs font-medium text-slate-400">Semua telah mengisi absensi / Tidak ada data yang cocok.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = listBelumAbsen.map((item) => `
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+          <td class="px-6 py-3.5 font-mono text-xs text-slate-600">${item.nisn}</td>
+          <td class="px-6 py-3.5 font-semibold text-slate-800">${item.nama}</td>
+          <td class="px-6 py-3.5 text-xs text-slate-500">${item.kelas}</td>
+          <td class="px-6 py-3.5">
+            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full ${item.peran === 'Guru' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}">${item.peran}</span>
+          </td>
+          <td class="px-6 py-3.5">
+            <button onclick="processAttendanceScan('${item.nisn}', 'Manual Belum Absen')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+              <i class="fa-solid fa-check mr-1"></i> Absenkan Manual
+            </button>
+          </td>
+        </tr>
+      `).join('');
     }
   </script>
 </body>
